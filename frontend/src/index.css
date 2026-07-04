@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  color: #101828;
+}
+
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-thumb { background: #D5DEE6; border-radius: 10px; }
+
+.marker-ping { position: relative; width: 20px; height: 20px; }
+.marker-ping .core {
+  position: absolute; top: 5px; left: 5px; width: 10px; height: 10px;
+  border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3);
+}
+.marker-ping .ring {
+  position: absolute; top: 0; left: 0; width: 20px; height: 20px;
+  border-radius: 50%; opacity: .45; animation: ring 1.8s infinite;
+}
+@keyframes ring {
+  0% { transform: scale(.4); opacity: .6; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+@keyframes livepulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(22,163,74,.5); }
+  50% { opacity: .6; }
+  70% { box-shadow: 0 0 0 6px rgba(22,163,74,0); }
+}
+.live-dot { animation: livepulse 1.6s infinite; }

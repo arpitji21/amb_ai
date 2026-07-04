@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LEIP — EMS Command Center</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root{
+    --bg:#F3F7FA;
+    --panel:#FFFFFF;
+    --navy:#0B2545;
+    --navy-2:#123057;
+    --primary:#0F5C8C;
+    --teal:#14B8A6;
+    --teal-soft:#E4F9F6;
+    --blue-soft:#EAF3FB;
+    --green:#16A34A;
+    --green-soft:#E9F9EF;
+    --amber:#D97706;
+    --amber-soft:#FDF3E3;
+    --red:#DC2626;
+    --red-soft:#FCEAEA;
+    --text:#101828;
+    --text-soft:#5B6B7B;
+    --border:#E3E9EF;
+    --shadow: 0 1px 2px rgba(16,24,40,0.04), 0 8px 24px -8px rgba(16,24,40,0.10);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .display{font-family:'Manrope',sans-serif;}
+
+  html, body { height: 100%; }
+  .app{display:flex;height:100vh;overflow:hidden;}
+  @media (max-width:1100px){ .sidebar{width:76px!important;} .statspanel{width:300px!important;} .navlabel{display:none;} }
+  @media (max-width:820px){ .sidebar{display:none;} .statspanel{width:280px!important;} }
+
+  /* Sidebar */
+  .sidebar{width:232px;flex-shrink:0;background:linear-gradient(180deg,var(--navy),var(--navy-2));color:#CFE0F5;display:flex;flex-direction:column;padding:20px 14px;}
+  .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 22px;}
+  .brand-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--teal),var(--primary));display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .brand-mark svg{width:18px;height:18px;}
+  .brand-name{font-family:'Manrope',sans-serif;font-weight:800;font-size:14.5px;color:#fff;letter-spacing:.2px;}
+  .brand-sub{font-size:10.5px;color:#8FA8C7;letter-spacing:.6px;}
+  .navsection{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:#5F7CA0;margin:14px 10px 8px;}
+  .navitem{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:9px;font-size:13.5px;font-weight:500;color:#B9CBE3;cursor:pointer;transition:background .15s,color .15s;}
+  .navitem svg{width:17px;height:17px;flex-shrink:0;}
+  .navitem:hover{background:rgba(255,255,255,0.06);color:#fff;}
+  .navitem.active{background:rgba(20,184,166,0.16);color:#5DEAD4;}
+  .sidebar-foot{margin-top:auto;border-top:1px solid rgba(255,255,255,0.08);padding-top:14px;display:flex;align-items:center;gap:10px;}
+  .avatar{width:32px;height:32px;border-radius:9px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;color:#04332C;flex-shrink:0;}
+  .foot-name{font-size:12.5px;font-weight:600;color:#fff;}
+  .foot-role{font-size:10.5px;color:#8FA8C7;}
+
+  /* Main */
+  .main{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;}
+  .topbar{height:62px;border-bottom:1px solid var(--border);background:var(--panel);display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0;}
+  .topbar h1{font-family:'Manrope',sans-serif;font-size:16.5px;font-weight:800;margin:0;}
+  .topbar-sub{font-size:11.5px;color:var(--text-soft);margin-top:1px;}
+  .topbar-right{display:flex;align-items:center;gap:14px;}
+  .searchbox{display:flex;align-items:center;gap:7px;background:var(--blue-soft);border:1px solid var(--border);border-radius:9px;padding:7px 11px;font-size:12.5px;color:var(--text-soft);width:200px;}
+  .searchbox svg{width:14px;height:14px;flex-shrink:0;}
+  .searchbox input{border:none;background:none;outline:none;font-size:12.5px;width:100%;font-family:inherit;}
+  .iconbtn{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background .15s;}
+  .iconbtn:hover{background:var(--blue-soft);}
+  .iconbtn svg{width:16px;height:16px;color:var(--text-soft);}
+  .dot-badge{position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--red);border:1.5px solid #fff;}
+  .live-pill{display:flex;align-items:center;gap:6px;background:var(--green-soft);color:var(--green);border-radius:20px;padding:6px 12px;font-size:11.5px;font-weight:700;}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(22,163,74,.5);}50%{opacity:.6;}70%{box-shadow:0 0 0 6px rgba(22,163,74,0);}}
+
+  .maparea{flex:1;position:relative;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0;}
+  .mapcard{flex:1;min-height:420px;border-radius:16px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border);position:relative;}
+  #map{width:100%;height:100%;}
+  .map-legend{position:absolute;bottom:14px;left:14px;z-index:500;background:rgba(255,255,255,0.92);backdrop-filter:blur(6px);border-radius:11px;padding:10px 13px;box-shadow:var(--shadow);display:flex;gap:14px;font-size:11px;color:var(--text-soft);}
+  .legend-item{display:flex;align-items:center;gap:6px;}
+  .legend-dot{width:8px;height:8px;border-radius:50%;}
+
+  .timeline-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:16px 18px;flex-shrink:0;}
+  .timeline-head{display:flex;align-items:center;justify-content:between;justify-content:space-between;margin-bottom:12px;}
+  .timeline-head h3{font-family:'Manrope',sans-serif;font-size:13.5px;font-weight:800;margin:0;}
+  .timeline-row{display:flex;gap:16px;overflow-x:auto;padding-bottom:2px;}
+  .tl-item{display:flex;flex-direction:column;gap:4px;min-width:130px;font-size:11.5px;flex-shrink:0;position:relative;padding-left:14px;border-left:2px solid var(--border);}
+  .tl-item.new{border-left-color:var(--teal);}
+  .tl-time{font-family:'JetBrains Mono',monospace;color:var(--text-soft);font-weight:600;font-size:10.5px;}
+  .tl-text{color:var(--text);font-weight:500;line-height:1.3;}
+
+  /* Right stats panel */
+  .statspanel{width:336px;flex-shrink:0;border-left:1px solid var(--border);background:var(--panel);padding:18px 16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
+  .statspanel h2{font-family:'Manrope',sans-serif;font-size:13px;font-weight:800;margin:0 0 2px;letter-spacing:.2px;}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .stat-card{background:linear-gradient(160deg,var(--blue-soft),#fff);border:1px solid var(--border);border-radius:13px;padding:12px 13px;position:relative;overflow:hidden;}
+  .stat-card.alert{background:linear-gradient(160deg,var(--red-soft),#fff);}
+  .stat-val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--primary);}
+  .stat-card.alert .stat-val{color:var(--red);}
+  .stat-label{font-size:10.5px;color:var(--text-soft);margin-top:3px;font-weight:500;}
+  .stat-trend{position:absolute;top:10px;right:10px;font-size:9.5px;color:var(--green);font-weight:700;}
+
+  .panel-block{border:1px solid var(--border);border-radius:14px;padding:13px 14px;background:#fff;}
+  .panel-block h3{font-family:'Manrope',sans-serif;font-size:12px;font-weight:800;margin:0 0 10px;display:flex;align-items:center;justify-content:space-between;}
+  .fleet-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #F0F3F6;font-size:12px;cursor:pointer;}
+  .fleet-row:last-child{border-bottom:none;}
+  .fleet-id{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:11.5px;}
+  .fleet-status{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;}
+  .st-available{background:var(--green-soft);color:var(--green);}
+  .st-responding{background:var(--amber-soft);color:var(--amber);}
+  .st-critical{background:var(--red-soft);color:var(--red);}
+  .st-arrived{background:var(--blue-soft);color:var(--primary);}
+
+  /* Popup styling */
+  .leaflet-popup-content-wrapper{border-radius:14px;box-shadow:var(--shadow);}
+  .amb-popup{font-family:'Inter',sans-serif;min-width:230px;}
+  .amb-popup .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .amb-popup .aid{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:var(--primary);}
+  .amb-popup .badge{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px;}
+  .amb-popup .row{display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0;color:var(--text-soft);}
+  .amb-popup .row b{color:var(--text);font-family:'JetBrains Mono',monospace;}
+  .amb-popup .ai{margin-top:8px;padding:8px 9px;background:var(--teal-soft);border-radius:9px;font-size:11px;color:#0C6B60;line-height:1.4;}
+
+  .marker-ping{position:relative;width:20px;height:20px;}
+  .marker-ping .core{position:absolute;top:5px;left:5px;width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);}
+  .marker-ping .ring{position:absolute;top:0;left:0;width:20px;height:20px;border-radius:50%;opacity:.45;animation:ring 1.8s infinite;}
+  @keyframes ring{0%{transform:scale(.4);opacity:.6;}100%{transform:scale(1.6);opacity:0;}}
+
+  ::-webkit-scrollbar{width:7px;height:7px;}
+  ::-webkit-scrollbar-thumb{background:#D5DEE6;border-radius:10px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <svg viewBox="0 0 300 92" style="height:26px;width:auto;flex-shrink:0;">
+        <text x="0" y="44" font-family="Manrope, Arial, sans-serif" font-weight="800" font-size="46" letter-spacing="-1" fill="#fff">LARK</text>
+        <text x="128" y="44" font-family="Manrope, Arial, sans-serif" font-weight="800" font-size="46" letter-spacing="-1" fill="#E31E24">AI</text>
+        <g fill="#E31E24">
+          <rect x="196" y="16" width="9" height="10" rx="1.5"/>
+          <rect x="209" y="10" width="9" height="16" rx="1.5"/>
+          <rect x="222" y="4" width="9" height="22" rx="1.5"/>
+        </g>
+        <text x="0" y="76" font-family="Manrope, Arial, sans-serif" font-weight="700" font-size="15" letter-spacing="6.5" fill="#CFE0F5">HEALTHCARE</text>
+      </svg>
+      <div>
+        <div class="brand-sub navlabel" style="margin-top:4px;">LEIP&nbsp;·&nbsp;EMERGENCY&nbsp;INTELLIGENCE</div>
+      </div>
+    </div>
+    <div class="navsection navlabel">Operations</div>
+    <div class="navitem active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span class="navlabel">Dashboard</span></div>
+    <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-5h9l4 5v5h-2m-9 0H5v-5"/><circle cx="7.5" cy="17.5" r="1.8"/><circle cx="16.5" cy="17.5" r="1.8"/></svg><span class="navlabel">Ambulances</span></div>
+    <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="navlabel">Patients</span></div>
+    <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.2-9.5-9A5.5 5.5 0 0 1 12 5a5.5 5.5 0 0 1 9.5 7c-2.5 3.8-9.5 9-9.5 9z"/><path d="M9 12h6M12 9v6"/></svg><span class="navlabel">Hospitals</span></div>
+    <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg><span class="navlabel">Reports</span></div>
+    <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 15l4-5 3 3 5-7"/></svg><span class="navlabel">Analytics</span></div>
+    <div class="navsection navlabel">System</div>
+    <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.6 1z"/></svg><span class="navlabel">Settings</span></div>
+    <div class="sidebar-foot">
+      <div class="avatar">SK</div>
+      <div>
+        <div class="foot-name">S. Kapoor</div>
+        <div class="foot-role">EMS Command</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>EMS Command Center</h1>
+        <div class="topbar-sub" id="clock">—</div>
+      </div>
+      <div class="topbar-right">
+        <div class="searchbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input placeholder="Search ambulance, patient, hospital…"/></div>
+        <div class="live-pill"><span class="live-dot"></span>LIVE SIMULATION</div>
+        <div class="iconbtn"><div class="dot-badge"></div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+      </div>
+    </div>
+
+    <div class="maparea">
+      <div class="mapcard">
+        <div id="map"></div>
+        <div class="map-legend">
+          <div class="legend-item"><span class="legend-dot" style="background:#16A34A"></span>Available</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#D97706"></span>Responding</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#DC2626"></span>Critical</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#0F5C8C"></span>At Hospital</div>
+        </div>
+      </div>
+      <div class="timeline-card">
+        <div class="timeline-head"><h3>Recent Activity</h3></div>
+        <div class="timeline-row" id="timeline"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside class="statspanel">
+    <h2>Live Statistics</h2>
+    <div class="stat-grid" id="statgrid"></div>
+
+    <div class="panel-block">
+      <h3>Fleet Status <span style="font-weight:500;color:var(--text-soft);font-size:10.5px;">5 units</span></h3>
+      <div id="fleetlist"></div>
+    </div>
+
+    <div class="panel-block">
+      <h3>Hospitals Connected</h3>
+      <div id="hospitallist"></div>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+/* ---------- Config & mock data ---------- */
+const CENTER = [12.9716, 77.5946]; // metro command zone
+const STATUS_COLOR = { available:'#16A34A', responding:'#D97706', critical:'#DC2626', arrived:'#0F5C8C' };
+const STATUS_LABEL = { available:'Available', responding:'Responding', critical:'Critical Patient', arrived:'At Hospital' };
+
+const HOSPITALS = [
+  { name:'St. Xavier General', lat:12.9789, lng:77.6089, load:'Moderate' },
+  { name:'Lakeview Trauma Center', lat:12.9611, lng:77.5900, load:'High' },
+  { name:'Northgate Medical', lat:12.9917, lng:77.5721, load:'Low' },
+];
+
+const NAMES = ['R. Sharma','A. Menon','K. Iyer','T. Fernandes','P. Naidu','S. Ghosh','V. Reddy','L. D\'Souza'];
+const PATIENTS = ['Arjun Rao','Meera Nair','Vikram Sethi','Fatima Sheikh','Rohan Kapoor','Nisha Verma'];
+const ALLERGIES = ['None known','Penicillin','None known','Sulfa drugs','None known'];
+const HISTORY = ['Hypertension','No prior conditions','Type 2 Diabetes','Asthma','Post-cardiac surgery'];
+
+function rand(min,max){ return Math.random()*(max-min)+min; }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function jitter(v,amt){ return Math.round((v + rand(-amt,amt))*10)/10; }
+
+// simple route generator: waypoints from a random start toward a hospital
+function makeRoute(hospital){
+  const start = [CENTER[0]+rand(-.05,.05), CENTER[1]+rand(-.05,.05)];
+  const end = [hospital.lat, hospital.lng];
+  const pts = [];
+  const steps = 40;
+  for(let i=0;i<=steps;i++){
+    const t = i/steps;
+    // slight curve via midpoint offset
+    const midLat = (start[0]+end[0])/2 + rand(-.01,.01);
+    const midLng = (start[1]+end[1])/2 + rand(-.01,.01);
+    const lat = (1-t)*(1-t)*start[0] + 2*(1-t)*t*midLat + t*t*end[0];
+    const lng = (1-t)*(1-t)*start[1] + 2*(1-t)*t*midLng + t*t*end[1];
+    pts.push([lat,lng]);
+  }
+  return pts;
+}
+
+let ambulances = ['A101','A102','A103','A104','A105'].map((id,i)=>{
+  const hospital = pick(HOSPITALS);
+  const route = makeRoute(hospital);
+  const status = pick(['available','responding','responding','critical','arrived']);
+  return {
+    id, driver: NAMES[i], patient: status==='available' ? null : pick(PATIENTS),
+    age: Math.floor(rand(19,78)), hospital: hospital.name, route, routeIdx: Math.floor(rand(0,route.length*0.3)),
+    speed: Math.floor(rand(28,64)), status,
+    hr: Math.floor(rand(70,125)), bp:[Math.floor(rand(100,150)),Math.floor(rand(65,95))],
+    spo2: Math.floor(rand(90,99)), temp: jitter(37.1,1.2), history: pick(HISTORY), allergy: pick(ALLERGIES),
+    marker: null,
+  };
+});
+
+/* ---------- Map init ---------- */
+const map = L.map('map',{ zoomControl:true, attributionControl:true }).setView(CENTER, 13);
+setTimeout(()=>map.invalidateSize(), 150);
+window.addEventListener('resize', ()=>map.invalidateSize());
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19, attribution:'&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+HOSPITALS.forEach(h=>{
+  L.marker([h.lat,h.lng], { icon: L.divIcon({ className:'', html:
+    `<div style="background:#fff;border:2px solid #0F5C8C;border-radius:9px;padding:4px 8px;font:700 10px Inter,sans-serif;color:#0F5C8C;box-shadow:0 2px 8px rgba(0,0,0,.15);white-space:nowrap;">🏥 ${h.name}</div>`,
+    iconSize:null }) }).addTo(map);
+});
+
+function ambIcon(a){
+  const color = STATUS_COLOR[a.status];
+  return L.divIcon({
+    className:'',
+    html:`<div class="marker-ping"><div class="ring" style="background:${color}"></div><div class="core" style="background:${color}"></div></div>`,
+    iconSize:[20,20], iconAnchor:[10,10]
+  });
+}
+
+function aiSummary(a){
+  if(a.status==='available') return 'Unit idle and ready for dispatch.';
+  const hrNote = a.hr>110? 'Heart rate elevated.' : 'Heart rate within acceptable range.';
+  const spo2Note = a.spo2<92 ? 'Oxygen saturation low — monitor closely.' : 'Oxygen saturation stable.';
+  const crit = a.status==='critical' ? 'Patient flagged critical; hospital pre-alerted.' : 'Patient condition stable during transport.';
+  return `${crit} ${hrNote} ${spo2Note}`;
+}
+
+function popupHtml(a){
+  return `<div class="amb-popup">
+    <div class="ph"><span class="aid">${a.id}</span><span class="badge" style="background:${STATUS_COLOR[a.status]}22;color:${STATUS_COLOR[a.status]}">${STATUS_LABEL[a.status]}</span></div>
+    <div class="row"><span>Driver</span><b>${a.driver}</b></div>
+    <div class="row"><span>Patient</span><b>${a.patient || '—'}</b></div>
+    ${a.patient? `<div class="row"><span>Age</span><b>${a.age}</b></div>
+    <div class="row"><span>Heart Rate</span><b>${a.hr} bpm</b></div>
+    <div class="row"><span>Blood Pressure</span><b>${a.bp[0]}/${a.bp[1]}</b></div>
+    <div class="row"><span>SpO₂</span><b>${a.spo2}%</b></div>
+    <div class="row"><span>Temperature</span><b>${a.temp}°C</b></div>` : ''}
+    <div class="row"><span>ETA</span><b>${a.eta||'—'} min</b></div>
+    <div class="row"><span>Hospital</span><b>${a.hospital}</b></div>
+    <div class="ai">🧠 <b>AI Summary:</b> ${aiSummary(a)}</div>
+  </div>`;
+}
+
+ambulances.forEach(a=>{
+  const pos = a.route[a.routeIdx];
+  a.marker = L.marker(pos, { icon: ambIcon(a) }).addTo(map).bindPopup(popupHtml(a));
+});
+
+/* ---------- Simulation tick ---------- */
+const timelineEl = document.getElementById('timeline');
+const events = [];
+function logEvent(text){
+  const t = new Date();
+  const hh = String(t.getHours()).padStart(2,'0'), mm = String(t.getMinutes()).padStart(2,'0'), ss=String(t.getSeconds()).padStart(2,'0');
+  events.unshift({ time:`${hh}:${mm}:${ss}`, text });
+  if(events.length>18) events.pop();
+  renderTimeline();
+}
+function renderTimeline(){
+  timelineEl.innerHTML = events.map((e,i)=>`<div class="tl-item ${i===0?'new':''}"><div class="tl-time">${e.time}</div><div class="tl-text">${e.text}</div></div>`).join('');
+}
+
+function tick(){
+  ambulances.forEach(a=>{
+    if(a.status==='arrived' || a.status==='available') return;
+    a.routeIdx = Math.min(a.routeIdx+1, a.route.length-1);
+    const pos = a.route[a.routeIdx];
+    a.marker.setLatLng(pos);
+    a.eta = Math.max(0, Math.round((a.route.length-1-a.routeIdx) * 0.35));
+    a.speed = Math.floor(jitter(a.speed, 4));
+    a.hr = Math.max(58, Math.min(160, Math.round(jitter(a.hr, 4))));
+    a.spo2 = Math.max(85, Math.min(99, Math.round(jitter(a.spo2, 1))));
+    a.temp = jitter(a.temp, 0.15);
+    a.bp = [Math.max(85,Math.min(170,Math.round(jitter(a.bp[0],3)))), Math.max(55,Math.min(105,Math.round(jitter(a.bp[1],2))))];
+
+    if(a.hr>130 && a.status!=='critical'){ a.status='critical'; a.marker.setIcon(ambIcon(a)); logEvent(`${a.id} flagged CRITICAL — heart rate spike`); }
+    if(a.routeIdx >= a.route.length-1 && a.status!=='arrived'){
+      a.status='arrived'; a.marker.setIcon(ambIcon(a));
+      logEvent(`${a.id} arrived at ${a.hospital}`);
+    }
+    a.marker.getPopup().setContent(popupHtml(a));
+  });
+  renderStats();
+  renderFleet();
+}
+
+/* occasionally dispatch an idle unit */
+function maybeDispatch(){
+  const idle = ambulances.filter(a=>a.status==='available');
+  if(idle.length && Math.random()<0.5){
+    const a = pick(idle);
+    const hospital = pick(HOSPITALS);
+    a.route = makeRoute(hospital); a.routeIdx = 0; a.hospital = hospital.name;
+    a.patient = pick(PATIENTS); a.age = Math.floor(rand(19,78));
+    a.status='responding';
+    a.marker.setIcon(ambIcon(a));
+    logEvent(`${a.id} dispatched — patient pickup: ${a.patient}`);
+  }
+}
+
+/* recycle arrived units back to available after a while */
+function maybeRecycle(){
+  ambulances.filter(a=>a.status==='arrived').forEach(a=>{
+    if(Math.random()<0.15){
+      a.status='available'; a.patient=null; a.marker.setIcon(ambIcon(a));
+      logEvent(`${a.id} returned to service`);
+    }
+  });
+}
+
+/* ---------- Stats + fleet + hospitals render ---------- */
+function renderStats(){
+  const total = ambulances.length;
+  const available = ambulances.filter(a=>a.status==='available').length;
+  const busy = total-available;
+  const critical = ambulances.filter(a=>a.status==='critical').length;
+  const avgResp = Math.round(ambulances.reduce((s,a)=>s+(a.eta||6),0)/total);
+  const stats = [
+    { label:'Total Ambulances', val: total },
+    { label:'Available', val: available },
+    { label:'Busy', val: busy },
+    { label:'Critical Patients', val: critical, alert: critical>0 },
+    { label:'Avg Response Time', val: avgResp+'m' },
+    { label:'Hospitals Connected', val: HOSPITALS.length },
+    { label:'Doctors Online', val: 3 },
+    { label:'Cases Today', val: 14 },
+  ];
+  document.getElementById('statgrid').innerHTML = stats.map(s=>`
+    <div class="stat-card ${s.alert?'alert':''}">
+      <div class="stat-val">${s.val}</div>
+      <div class="stat-label">${s.label}</div>
+    </div>`).join('');
+}
+
+function renderFleet(){
+  document.getElementById('fleetlist').innerHTML = ambulances.map(a=>`
+    <div class="fleet-row" onclick='window.__focusAmb("${a.id}")'>
+      <span class="fleet-id">${a.id}</span>
+      <span style="color:var(--text-soft)">${a.status==='available'?'Standby':a.hospital.split(' ')[0]}</span>
+      <span class="fleet-status st-${a.status}">${STATUS_LABEL[a.status]}</span>
+    </div>`).join('');
+}
+
+function renderHospitals(){
+  document.getElementById('hospitallist').innerHTML = HOSPITALS.map(h=>`
+    <div class="fleet-row" style="cursor:default">
+      <span style="font-weight:600;font-size:11.5px;">${h.name}</span>
+      <span class="fleet-status ${h.load==='High'?'st-critical':h.load==='Moderate'?'st-responding':'st-available'}">${h.load}</span>
+    </div>`).join('');
+}
+
+window.__focusAmb = function(id){
+  const a = ambulances.find(x=>x.id===id);
+  if(a){ map.setView(a.marker.getLatLng(), 15); a.marker.openPopup(); }
+};
+
+/* ---------- Clock ---------- */
+function updateClock(){
+  const d = new Date();
+  document.getElementById('clock').textContent = 'Metro Command Zone · ' + d.toLocaleTimeString();
+}
+
+/* ---------- Boot ---------- */
+logEvent('Command center initialized');
+logEvent('5 units online, fleet nominal');
+renderStats(); renderFleet(); renderHospitals(); updateClock();
+setInterval(updateClock, 1000);
+setInterval(tick, 2000);
+setInterval(maybeDispatch, 6000);
+setInterval(maybeRecycle, 9000);
+</script>
+</body>
+</html>
