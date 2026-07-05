@@ -43,14 +43,20 @@ export default function DoctorDashboard() {
   useEffect(() => {
     if (!ambulance) return;
   
-    const id = setInterval(() => {
-      const entry = generateAgentEntry(ambulance);
+    const addEntry = () => {
+      setAgentEntries((prev) => [
+        generateAgentEntry(ambulance),
+        ...prev,
+      ].slice(0, 20));
+    };
   
-      setAgentEntries((prev) => [entry, ...prev].slice(0, 20));
-    }, 4000);
+    // Generate the first entry immediately
+    addEntry();
+  
+    const id = setInterval(addEntry, 4000);
   
     return () => clearInterval(id);
-  }, [ambulance]);
+  }, [ambulance?.id]);
 
   useEffect(() => {
     setHistory([]);
