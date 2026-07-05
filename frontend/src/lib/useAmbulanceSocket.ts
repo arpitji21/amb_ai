@@ -116,7 +116,7 @@ export function useAmbulanceSocket() {
           if (heartRate > 130 && a.status !== 'critical') {
             logEvent(`${a.id} flagged CRITICAL — heart rate spike`);
           }
-          if (routeIndex >= a.route.length - 1 && a.status !== 'arrived') {
+          if (routeIndex >= a.route.length - 1) {
             next.status = 'arrived';
             logEvent(`${a.id} arrived at ${a.hospital}`);
           }
