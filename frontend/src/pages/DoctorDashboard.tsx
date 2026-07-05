@@ -1,3 +1,5 @@
+import AgentFeed from "@/components/AgentFeed";
+import { generateAgentEntry, type AgentEntry } from "@/lib/agentFeed";
 import { useEffect, useState } from 'react';
 import { Stethoscope, Clock, Building2, Sparkles, ClipboardCheck } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
@@ -20,6 +22,7 @@ export default function DoctorDashboard() {
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
   const [history, setHistory] = useState<{ t: number; hr: number; spo2: number }[]>([]);
   const [registeredPatient, setRegisteredPatient] = useState<PatientRegistration | null>(null);
+  const [agentEntries, setAgentEntries] = useState<AgentEntry[]>([]);
 
   useEffect(() => {
     if (!selectedId && incoming.length) setSelectedId(incoming[0].id);
@@ -38,9 +41,22 @@ export default function DoctorDashboard() {
   }, [ambulance]);
 
   useEffect(() => {
+    if (!ambulance) return;
+  
+    const id = setInterval(() => {
+      const entry = generateAgentEntry(ambulance);
+  
+      setAgentEntries((prev) => [entry, ...prev].slice(0, 20));
+    }, 4000);
+  
+    return () => clearInterval(id);
+  }, [ambulance]);
+
+  useEffect(() => {
     setHistory([]);
     setChecklist({});
     setRegisteredPatient(null);
+    setAgentEntries([]);
     if (!selectedId) return;
     api
       .get(`/api/patients/by-ambulance/${selectedId}`)
@@ -119,6 +135,7 @@ export default function DoctorDashboard() {
               </div>
 
               <LiveVitalsMonitor vitals={ambulance.vitals} />
+              <AgentFeed entries={agentEntries} />
 
               <div className="bg-white border border-line rounded-2xl shadow-card p-4">
                 <h2 className="font-display font-extrabold text-sm mb-3">Vitals Trend</h2>
