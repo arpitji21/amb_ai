@@ -39,25 +39,23 @@ class UserCreate(BaseModel):
     family_patient_id: Optional[str] = None
 
 
+from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, ConfigDict
+
 class UserOut(BaseModel):
     id: str
     name: str
-    email: EmailStr
+    email: str
+    role: str
+    hospital: Optional[str] = None
+    created_at: Optional[datetime] = None
 
-    role: Role
-
-    hospital: Optional[str]
-
-    ambulance_id: Optional[str]
-
-    doctor_id: Optional[str]
-
-    family_patient_id: Optional[str]
-
-    created_at: datetime
+    ambulance_id: Optional[int] = None
+    doctor_id: Optional[int] = None
+    family_patient_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
-
 
 class Token(BaseModel):
     access_token: str
